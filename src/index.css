@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --purple: #6F4E7C;
+  --purple-light: #f3edf5;
+  --green: #8DAA91;
+  --cream: #F8F5F1;
+  --gold: #C9A96A;
+  --pink: #D8A6D1;
+  --dark-green: #32463C;
+}
+
+body {
+  font-family: "Inter", "Noto Sans Arabic", sans-serif;
+  background-color: var(--cream);
+  color: var(--dark-green);
+  min-height: 100vh;
+}
+
+[dir="rtl"] body {
+  font-family: "Noto Sans Arabic", "Inter", sans-serif;
+}
+
+.hero-bg {
+  background:
+    radial-gradient(circle at 90% 10%, rgba(216,166,209,.28), transparent 28%),
+    radial-gradient(circle at 10% 90%, rgba(141,170,145,.30), transparent 32%),
+    var(--cream);
+}
+
+.glass {
+  background: rgba(255,255,255,.85);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(111,78,124,.12);
+}
+
+.stage-card {
+  transition: all .25s ease;
+}
+
+.stage-card:hover {
+  box-shadow: 0 12px 30px rgba(50,70,60,.08);
+}
