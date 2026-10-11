@@ -5,12 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <title>Sedra Green Action Hub | My Progress Dash Board Project</title>
+  <meta name="description" content="Sedra Green Action Hub - Interactive progress tracking dashboard for environmental initiatives, emerging technologies, and Vibe Coding roadmap." />
+
+  <!-- Preconnect for fast Supabase and CDN asset delivery -->
+  <link rel="preconnect" href="https://feftdttbnbsacxohrtlv.supabase.co" crossorigin>
+  <link rel="dns-prefetch" href="https://feftdttbnbsacxohrtlv.supabase.co">
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
@@ -325,6 +330,7 @@
             <span id="filterStatusLabel" class="text-gray-500 font-medium">Status:</span>
             <select
               id="statusFilter"
+              aria-label="Filter tasks by completion status"
               onchange="handleFilterChange()"
               class="px-2.5 py-1.5 rounded-xl bg-white border border-gray-200 text-xs font-semibold focus:outline-none">
               <option value="all">All</option>
@@ -339,6 +345,7 @@
             <span id="filterPriorityLabel" class="text-gray-500 font-medium">Priority:</span>
             <select
               id="priorityFilter"
+              aria-label="Filter tasks by priority level"
               onchange="handleFilterChange()"
               class="px-2.5 py-1.5 rounded-xl bg-white border border-gray-200 text-xs font-semibold focus:outline-none">
               <option value="all">All</option>
