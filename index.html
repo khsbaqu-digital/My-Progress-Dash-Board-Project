@@ -7,6 +7,7 @@
   <title>Sedra Green Action Hub | My Progress Dash Board Project</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -190,15 +191,18 @@
       </div>
     </div>
 
-    <!-- AUTO SAVE NOTICE -->
-    <div class="mt-4 px-4 py-2.5 rounded-2xl bg-emerald-50/90 border border-emerald-200/80 text-xs text-emerald-900 flex items-center justify-between gap-3">
+    <!-- CLOUD SYNC & AUTO SAVE NOTICE -->
+    <div class="mt-4 px-4 py-2.5 rounded-2xl bg-emerald-50/90 border border-emerald-200/80 text-xs text-emerald-900 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2">
-        <span class="text-base">✅</span>
+        <span class="text-base">☁️</span>
         <span id="storageNotice">
-          ✅ Auto-save is active in your browser — all changes are saved instantly.
+          ✅ مزامنة سحابية نشطة (Supabase) — يتم حفظ وتحديث إنجازك تلقائياً عبر الأجهزة.
         </span>
       </div>
-      <span class="font-bold text-[11px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-200/70 text-emerald-900">Auto-Save Active</span>
+      <div id="cloudStatusBadge" class="font-bold text-[11px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 flex items-center gap-1.5 shadow-2xs">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span>Supabase Synced</span>
+      </div>
     </div>
   </header>
 
@@ -1401,22 +1405,117 @@ let activeModalTask = null; // { stageId, taskId }
 
 
 /* =========================================================
+   SUPABASE CLOUD DATABASE SYNC
+========================================================= */
+
+const SUPABASE_URL = "https://feftdttbnbsacxohrtlv.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZlZnRkdHRibmJzYWN4b2hydGx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE3MTg1NTYsImV4cCI6MjEwNzI5NDU1Nn0.86ZyXmzVi8l2D3qra7YR-deytBi8TuM6o7h_WDkZjvw";
+
+let supabaseClient = null;
+if (window.supabase && window.supabase.createClient) {
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (err) {
+    console.warn("Supabase init error", err);
+  }
+}
+
+function updateCloudSyncStatus(status) {
+  const badge = document.getElementById("cloudStatusBadge");
+  if (!badge) return;
+  const ar = (language === "ar");
+
+  if (status === "syncing") {
+    badge.className = "font-bold text-[11px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 flex items-center gap-1.5 shadow-2xs";
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 animate-ping"></span> <span>${ar ? "جارٍ المزامنة..." : "Syncing..."}</span>`;
+  } else if (status === "synced") {
+    badge.className = "font-bold text-[11px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-200/80 text-emerald-900 flex items-center gap-1.5 shadow-2xs";
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500"></span> <span>${ar ? "سحابي متزامن" : "Cloud Synced"}</span>`;
+  } else if (status === "error") {
+    badge.className = "font-bold text-[11px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-gray-200 text-gray-700 flex items-center gap-1.5 shadow-2xs";
+    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-400"></span> <span>${ar ? "وضع محلي" : "Local Mode"}</span>`;
+  }
+}
+
+let syncTimeout = null;
+function debouncedSyncToCloud() {
+  if (!supabaseClient) return;
+  clearTimeout(syncTimeout);
+  updateCloudSyncStatus("syncing");
+  syncTimeout = setTimeout(async () => {
+    try {
+      const { error } = await supabaseClient
+        .from('sedra_progress')
+        .upsert({
+          id: 'main_progress',
+          progress: progress,
+          task_details: taskDetails,
+          daily_focus: dailyFocusData,
+          log_entries: logEntries,
+          updated_at: new Date().toISOString()
+        });
+      if (!error) {
+        updateCloudSyncStatus("synced");
+      } else {
+        updateCloudSyncStatus("error");
+      }
+    } catch (err) {
+      updateCloudSyncStatus("error");
+    }
+  }, 1000);
+}
+
+async function syncFromCloud() {
+  if (!supabaseClient) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('sedra_progress')
+      .select('*')
+      .eq('id', 'main_progress')
+      .single();
+
+    if (data && !error) {
+      if (data.progress && Object.keys(data.progress).length > 0) {
+        progress = data.progress;
+        if (data.task_details) taskDetails = data.task_details;
+        if (data.daily_focus) dailyFocusData = data.daily_focus;
+        if (data.log_entries) logEntries = data.log_entries;
+        localStorage.setItem(STORAGE_PROGRESS_KEY, JSON.stringify(progress));
+        localStorage.setItem(STORAGE_DETAILS_KEY, JSON.stringify(taskDetails));
+        localStorage.setItem(STORAGE_FOCUS_KEY, JSON.stringify(dailyFocusData));
+        localStorage.setItem(STORAGE_LOGS_KEY, JSON.stringify(logEntries));
+        renderStages();
+        updateStats();
+        renderLogs();
+      }
+      updateCloudSyncStatus("synced");
+    }
+  } catch (err) {
+    console.warn("Could not sync from cloud", err);
+  }
+}
+
+
+/* =========================================================
    SAVE FUNCTIONS
 ========================================================= */
 
 function saveAllData() {
   localStorage.setItem(STORAGE_PROGRESS_KEY, JSON.stringify(progress));
   localStorage.setItem(STORAGE_DETAILS_KEY, JSON.stringify(taskDetails));
+  debouncedSyncToCloud();
 }
 
 function saveDailyFocus() {
   dailyFocusData.dailyFocus = document.getElementById("dailyFocusInput").value.trim();
   dailyFocusData.nextStep   = document.getElementById("nextStepInput").value.trim();
   localStorage.setItem(STORAGE_FOCUS_KEY, JSON.stringify(dailyFocusData));
+  debouncedSyncToCloud();
 }
 
 function saveLogs() {
   localStorage.setItem(STORAGE_LOGS_KEY, JSON.stringify(logEntries));
+  debouncedSyncToCloud();
 }
 
 
@@ -1471,8 +1570,8 @@ function updateStaticText() {
 
   document.getElementById("storageNotice").textContent =
     ar
-      ? "✅ الحفظ التلقائي مُفعّل ومباشر في متصفحك — يتم حفظ كل تحديث وتغيير لحظياً."
-      : "✅ Auto-save is active in your browser — all changes are saved instantly.";
+      ? "✅ مزامنة سحابية نشطة (Supabase) — يتم حفظ وتحديث إنجازك تلقائياً عبر الأجهزة."
+      : "✅ Cloud Database Sync Active (Supabase) — All progress is saved automatically across devices.";
 
   document.getElementById("dailyFocusTitle").textContent =
     ar ? "🎯 مساحة التركيز اليومي والخطوة القادمة" : "🎯 Daily Focus & Immediate Next Step";
@@ -2199,6 +2298,7 @@ function checkShareLink() {
 
 checkShareLink();
 setLanguage(language);
+syncFromCloud();
 
 </script>
 
