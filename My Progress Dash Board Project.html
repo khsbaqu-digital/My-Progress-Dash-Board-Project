@@ -165,6 +165,14 @@
           <span>📥</span> <span id="exportText">Export Backup</span>
         </button>
 
+        <button
+          onclick="shareProgressLink()"
+          id="shareBtn"
+          class="px-3.5 py-2 rounded-xl bg-purple-50 border text-xs md:text-sm font-semibold shadow-sm hover:bg-purple-100 flex items-center gap-1.5"
+          style="color:var(--purple); border-color: rgba(111,78,124,0.35)">
+          <span>🔗</span> <span id="shareText">مشاركة إنجازي</span>
+        </button>
+
         <label
           class="px-3.5 py-2 rounded-xl bg-white border text-xs md:text-sm font-semibold shadow-sm hover:bg-gray-50 flex items-center gap-1.5 cursor-pointer"
           style="color:var(--dark-green); border-color: rgba(50,70,60,0.2)">
@@ -1452,6 +1460,9 @@ function updateStaticText() {
   document.getElementById("exportText").textContent =
     ar ? "تصدير نسخة احتياطية" : "Export Backup";
 
+  document.getElementById("shareText").textContent =
+    ar ? "مشاركة إنجازي" : "Share My Progress";
+
   document.getElementById("importText").textContent =
     ar ? "استعادة نسخة" : "Import Backup";
 
@@ -2133,9 +2144,60 @@ function resetProgress() {
 
 
 /* =========================================================
+   SHARE PROGRESS LINK
+========================================================= */
+
+function shareProgressLink() {
+  const payload = {
+    p: progress,
+    f: dailyFocusData,
+    d: taskDetails,
+    l: logEntries
+  };
+  const json = JSON.stringify(payload);
+  const encoded = encodeURIComponent(btoa(unescape(encodeURIComponent(json))));
+  const shareUrl = window.location.origin + window.location.pathname + "#share=" + encoded;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      alert(language === "ar"
+        ? "✅ تم نسخ رابط إنجازك بنجاح!\n\nيمكنك الآن إرساله على الواتساب إلى والدك أو الأستاذ المدرب، وسيفتح معهم الموقع معروضاً فيه إنجازك ونسبتكِ بالكامل."
+        : "✅ Share link copied to clipboard!\n\nYou can now send it to your mentor or family, and it will open with your full progress.");
+    }).catch(() => {
+      prompt(language === "ar" ? "انسخي هذا الرابط لإرساله:" : "Copy this link to share:", shareUrl);
+    });
+  } else {
+    prompt(language === "ar" ? "انسخي هذا الرابط لإرساله:" : "Copy this link to share:", shareUrl);
+  }
+}
+
+function checkShareLink() {
+  if (window.location.hash && window.location.hash.startsWith("#share=")) {
+    try {
+      const raw = window.location.hash.replace("#share=", "");
+      const json = decodeURIComponent(escape(atob(decodeURIComponent(raw))));
+      const payload = JSON.parse(json);
+      if (payload && payload.p) {
+        progress = payload.p;
+        if (payload.f) dailyFocusData = payload.f;
+        if (payload.d) taskDetails = payload.d;
+        if (payload.l) logEntries = payload.l;
+        saveAllData();
+        saveDailyFocus();
+        saveLogs();
+      }
+    } catch (err) {
+      console.warn("Could not decode shared progress link", err);
+    }
+  }
+}
+
+
+/* =========================================================
    INITIALIZATION
 ========================================================= */
 
+checkShareLink();
 setLanguage(language);
 
 </script>
